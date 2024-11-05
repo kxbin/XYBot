@@ -2,7 +2,7 @@
 #
 #  This program is licensed under the GNU General Public License v3.0.
 
-import re,yaml,json
+import re,yaml,time,json,threading
 from loguru import logger
 from openai import AsyncOpenAI
 from wcferry import client
@@ -13,12 +13,6 @@ from wcferry_helper import XYBotWxMsg
 
 from cozepy import Message, ChatStatus
 from utils.coze import coze_client
-white_group = []
-white_people = []
-with open('white_group.json', 'r') as f:
-    white_group = json.load(f)
-with open('white_people.json', 'r') as f:
-    white_people = json.load(f)
 
 class private_chatgpt(PluginInterface):
     def __init__(self):
@@ -53,40 +47,79 @@ class private_chatgpt(PluginInterface):
 
         self.db = BotDatabase()
 
+        # 自定义
+        self.group_latest_msg = {}
+        self.group_reply_time = {}
+        with open('white_group.json', 'r') as f:
+            self.white_group = json.load(f)
+        with open('white_people.json', 'r') as f:
+            self.white_people = json.load(f)
+
+    def notify(self, bot: client.Wcf, minute, roomid, msg):
+        bot.send_text("已超过{}分钟没有回复‘{}’".format(str(minute),msg), roomid)
+
+    def group_process(self, bot: client.Wcf, roomid, sender, msg):
+        self.group_latest_msg[roomid] = msg
+        if sender in self.white_people:
+            self.group_reply_time[roomid] = time.time()
+        
+        # 每秒检查持续5分钟，如5分钟内有公司自己人回复或有最新提问，则结束此线程，否则AI回复
+        now = time.time()
+        end = now + 300
+        while now < end:
+            time.sleep(1)
+            now = time.time()
+            if roomid in self.group_reply_time and now < (self.group_reply_time[roomid] + 300):
+                return
+            if self.group_latest_msg[roomid] != msg:
+                return
+        
+        bot.send_text("请您稍等，我们人员正在跟进中", roomid)
+
+        # 每5分钟检查持续6分钟，如还没有自己人回复，则持续广播
+        now = time.time()
+        end = now + 360
+        while now < end:
+            self.notify(bot, 11-int((end-now)/60), roomid, msg)
+            time.sleep(300)
+            now = time.time()
+            if roomid in self.group_reply_time and now < (self.group_reply_time[roomid] + 310):
+                return
+
     async def run(self, bot: client.Wcf, recv: XYBotWxMsg):
         msg = re.sub(r'@.*?\u2005', '', recv.content)
 
-        if not self.enable_private_chat_gpt:
-            return  # 如果不开启私聊chatgpt，不处理
-        elif msg.startswith("我是"):
+        if msg.startswith("我是"):
             return  # 微信打招呼消息，不需要处理
         elif recv.from_group():
-            if msg == "亿速云客服，请重点关注一下本群":
-                if recv.roomid not in white_group:
-                    white_group.append(recv.roomid)
+            if msg == "请亿速云客服重点关注一下本群":
+                if recv.roomid not in self.white_group:
+                    self.white_group.append(recv.roomid)
                     with open('white_group.json', 'w') as f:
-                        json.dump(white_group, f)
+                        json.dump(self.white_group, f)
                 bot.send_text("收到，我会的", recv.roomid)
                 return  # 如果是群里加白指令
             elif "大家好，我是亿速云" in msg:
-                if recv.sender not in white_people:
-                    white_people.append(recv.sender)
+                if recv.sender not in self.white_people:
+                    self.white_people.append(recv.sender)
                     with open('white_people.json', 'w') as f:
-                        json.dump(white_people, f)
+                        json.dump(self.white_people, f)
                 bot.send_text("[鼓掌]", recv.roomid)
                 return  # 如果是人员加白指令
-            elif recv.roomid not in white_group:
+            elif recv.roomid not in self.white_group:
                 return  # 如果消息不来自加白的群，不处理
 
-        wxid = recv.sender
-        chat_poll = coze_client.chat.create_and_poll(
-            bot_id='7418104570632732722',
-            user_id='test',
-            additional_messages=[Message.build_user_question_text(msg)]
-        )
-        if chat_poll.chat.status == ChatStatus.COMPLETED:
-            bot.send_text(chat_poll.messages[0].content, recv.roomid)
-            logger.info(f'[发送信息]{chat_poll.messages[0].content}| [发送到] {wxid}')
+            threading.Thread(target=self.group_process, args=(bot, recv.roomid, recv.sender, msg, ), daemon=True).start()
+
+        # wxid = recv.sender
+        # chat_poll = coze_client.chat.create_and_poll(
+        #     bot_id='7418104570632732722',
+        #     user_id='test',
+        #     additional_messages=[Message.build_user_question_text(msg)]
+        # )
+        # if chat_poll.chat.status == ChatStatus.COMPLETED:
+        #     bot.send_text(chat_poll.messages[0].content, recv.roomid)
+        #     logger.info(f'[发送信息]{chat_poll.messages[0].content}| [发送到] {wxid}')
 
     async def chatgpt(self, wxid: str, message: str):  # 这个函数请求了openai的api
         request_content = self.compose_gpt_dialogue_request_content(wxid, message)  # 构成对话请求内容，返回一个包含之前对话的列表
