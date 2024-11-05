@@ -50,13 +50,13 @@ class private_chatgpt(PluginInterface):
         # 自定义
         self.group_latest_msg = {}
         self.group_reply_time = {}
-        with open('white_group.json', 'r') as f:
+        with open('white_group.json', 'r', encoding='utf-8') as f:
             self.white_group = json.load(f)
-        with open('white_people.json', 'r') as f:
+        with open('white_people.json', 'r', encoding='utf-8') as f:
             self.white_people = json.load(f)
 
     def notify(self, bot: client.Wcf, minute, roomid, msg):
-        bot.send_text("已超过{}分钟没有回复‘{}’".format(str(minute),msg), roomid)
+        bot.send_text("用户群{}，已超过{}分钟没有回复，用户问题是：‘{}’".format(self.white_group[roomid], str(minute),msg), roomid)
 
     def group_process(self, bot: client.Wcf, roomid, sender, msg):
         self.group_latest_msg[roomid] = msg
@@ -92,18 +92,16 @@ class private_chatgpt(PluginInterface):
         if msg.startswith("我是"):
             return  # 微信打招呼消息，不需要处理
         elif recv.from_group():
-            if msg == "请亿速云客服重点关注一下本群":
-                if recv.roomid not in self.white_group:
-                    self.white_group.append(recv.roomid)
-                    with open('white_group.json', 'w') as f:
-                        json.dump(self.white_group, f)
+            if "请亿速云客服重点关注一下本群" in msg:
+                self.white_group[recv.roomid] = msg.replace("请亿速云客服重点关注一下本群", "")
+                with open('white_group.json', 'w', encoding='utf-8') as f:
+                    json.dump(self.white_group, f, ensure_ascii=False, indent=4)
                 bot.send_text("收到，我会的", recv.roomid)
                 return  # 如果是群里加白指令
             elif "大家好，我是亿速云" in msg:
-                if recv.sender not in self.white_people:
-                    self.white_people.append(recv.sender)
-                    with open('white_people.json', 'w') as f:
-                        json.dump(self.white_people, f)
+                self.white_people[recv.sender] = msg.replace("大家好，我是亿速云", "")
+                with open('white_people.json', 'w', encoding='utf-8') as f:
+                    json.dump(self.white_people, f, ensure_ascii=False, indent=4)
                 bot.send_text("[鼓掌]", recv.roomid)
                 return  # 如果是人员加白指令
             elif recv.roomid not in self.white_group:
