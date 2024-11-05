@@ -87,12 +87,6 @@ class XYBot:
         if not self.ignorance_check(recv):  # 屏蔽检查
             return
 
-        # @机器人处理
-        if self.self_wxid in recv.ats:  # 机器人被@，调用所有mention插件
-            for plugin in plugin_manager.plugins["mention"].values():
-                await asyncio.create_task(plugin.run(bot, recv))
-            return
-
         # 指令处理
         if recv.content.startswith(self.command_prefix) or self.command_prefix == "":
             if self.command_prefix != "":  # 特殊处理，万一用户想要使用空前缀
@@ -110,6 +104,11 @@ class XYBot:
                 logger.info(f'[发送信息]{out_message}| [发送到] {recv.roomid}')
                 bot.send_text(out_message, recv.roomid)
                 return  # 执行完后直接返回
+            
+        # @机器人处理
+        if self.self_wxid in recv.ats:  # 机器人被@，调用所有mention插件
+            for plugin in plugin_manager.plugins["mention"].values():
+                await asyncio.create_task(plugin.run(bot, recv))
 
         # 普通消息处理
         for plugin in plugin_manager.plugins["text"].values():

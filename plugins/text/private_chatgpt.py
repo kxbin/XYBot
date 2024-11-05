@@ -14,9 +14,11 @@ from wcferry_helper import XYBotWxMsg
 from cozepy import Message, ChatStatus
 from utils.coze import coze_client
 white_group = []
+white_people = []
 with open('white_group.json', 'r') as f:
     white_group = json.load(f)
-    print(white_group)
+with open('white_people.json', 'r') as f:
+    white_people = json.load(f)
 
 class private_chatgpt(PluginInterface):
     def __init__(self):
@@ -52,22 +54,29 @@ class private_chatgpt(PluginInterface):
         self.db = BotDatabase()
 
     async def run(self, bot: client.Wcf, recv: XYBotWxMsg):
-        recv.content = re.split(" |\u2005", recv.content) # 拆分消息
-        # 这里recv.content中的内容是分割的
-        msg = " ".join(recv.content)
+        msg = re.sub(r'@.*?\u2005', '', recv.content)
 
         if not self.enable_private_chat_gpt:
             return  # 如果不开启私聊chatgpt，不处理
         elif msg.startswith("我是"):
             return  # 微信打招呼消息，不需要处理
-        elif msg == "请将此群加入AI回复白名单":
-            white_group.append(recv.roomid)
-            with open('white_group.json', 'w') as f:
-                json.dump(white_group, f)
-            bot.send_text("收到，已将此群加入AI回复白名单" + recv.roomid, recv.roomid)
-            return  # 如果是群里加白指令
-        elif recv.from_group() and (recv.roomid not in white_group):
-            return  # 如果消息不来自加白的群，不处理
+        elif recv.from_group():
+            if msg == "亿速云客服，请重点关注一下本群":
+                if recv.roomid not in white_group:
+                    white_group.append(recv.roomid)
+                    with open('white_group.json', 'w') as f:
+                        json.dump(white_group, f)
+                bot.send_text("收到，我会的", recv.roomid)
+                return  # 如果是群里加白指令
+            elif "大家好，我是亿速云" in msg:
+                if recv.sender not in white_people:
+                    white_people.append(recv.sender)
+                    with open('white_people.json', 'w') as f:
+                        json.dump(white_people, f)
+                bot.send_text("[鼓掌]", recv.roomid)
+                return  # 如果是人员加白指令
+            elif recv.roomid not in white_group:
+                return  # 如果消息不来自加白的群，不处理
 
         wxid = recv.sender
         chat_poll = coze_client.chat.create_and_poll(
