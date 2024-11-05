@@ -2,9 +2,7 @@
 #
 #  This program is licensed under the GNU General Public License v3.0.
 
-import re
-
-import yaml
+import re,yaml,json
 from loguru import logger
 from openai import AsyncOpenAI
 from wcferry import client
@@ -13,6 +11,12 @@ from utils.database import BotDatabase
 from utils.plugin_interface import PluginInterface
 from wcferry_helper import XYBotWxMsg
 
+from cozepy import Message, ChatStatus
+from utils.coze import coze_client
+white_group = []
+with open('white_group.json', 'r') as f:
+    white_group = json.load(f)
+    print(white_group)
 
 class private_chatgpt(PluginInterface):
     def __init__(self):
@@ -48,46 +52,32 @@ class private_chatgpt(PluginInterface):
         self.db = BotDatabase()
 
     async def run(self, bot: client.Wcf, recv: XYBotWxMsg):
+        recv.content = re.split(" |\u2005", recv.content) # 拆分消息
+        # 这里recv.content中的内容是分割的
+        msg = " ".join(recv.content)
+
         if not self.enable_private_chat_gpt:
             return  # 如果不开启私聊chatgpt，不处理
-        elif recv.from_group():
-            return  # 如果是群聊消息，不处理
+        elif msg.startswith("我是"):
+            return  # 微信打招呼消息，不需要处理
+        elif msg == "请将此群加入AI回复白名单":
+            white_group.append(recv.roomid)
+            with open('white_group.json', 'w') as f:
+                json.dump(white_group, f)
+            bot.send_text("收到，已将此群加入AI回复白名单" + recv.roomid, recv.roomid)
+            return  # 如果是群里加白指令
+        elif recv.from_group() and (recv.roomid not in white_group):
+            return  # 如果消息不来自加白的群，不处理
 
-        recv.content = re.split(" |\u2005", recv.content) # 拆分消息
-
-        # 这里recv.content中的内容是分割的
-        gpt_request_message = " ".join(recv.content)
         wxid = recv.sender
-
-        if gpt_request_message.startswith("我是"):  # 微信打招呼消息，不需要处理
-            return
-
-        error = ''
-        if self.db.get_points(wxid) < self.private_chat_gpt_price and wxid not in self.admins and not self.db.get_whitelist(wxid):  # 积分不够
-            error = f"您的积分不足 {self.private_chat_gpt_price} 点，无法使用私聊GPT功能！⚠️"
-        elif not self.senstitive_word_check(gpt_request_message):  # 有敏感词
-            error = "您的问题中包含敏感词，请重新输入！⚠️"
-
-        if not error:  # 如果没有错误
-            if recv.content[0] in self.clear_dialogue_keyword:  # 如果是清除对话记录的关键词，清除数据库对话记录
-                self.clear_dialogue(wxid)  # 保存清除了的数据到数据库
-                out_message = "对话记录已清除！✅"
-                bot.send_text(out_message, wxid)
-                logger.info(f'[发送信息]{out_message}| [发送到] {wxid}')
-            else:
-                gpt_answer = await self.chatgpt(wxid, gpt_request_message)  # 调用chatgpt函数
-                if gpt_answer[0]:  # 如果没有错误
-                    bot.send_text(gpt_answer[1], wxid)  # 发送回答
-                    logger.info(f'[发送信息]{gpt_answer[1]}| [发送到] {wxid}')
-                    if wxid not in self.admins or not self.db.get_whitelist(wxid):
-                        self.db.add_points(wxid, -self.private_chat_gpt_price)  # 扣除积分，管理员不扣
-                else:
-                    out_message = f"出现错误⚠️！\n{gpt_answer[1]}"  # 如果有错误，发送错误信息
-                    bot.send_text(out_message, wxid)
-                    logger.error(f'[发送信息]{out_message}| [发送到] {wxid}')
-        else:
-            bot.send_text(error, recv.roomid)
-            logger.info(f'[发送信息]{error}| [发送到] {wxid}')
+        chat_poll = coze_client.chat.create_and_poll(
+            bot_id='7418104570632732722',
+            user_id='test',
+            additional_messages=[Message.build_user_question_text(msg)]
+        )
+        if chat_poll.chat.status == ChatStatus.COMPLETED:
+            bot.send_text(chat_poll.messages[0].content, recv.roomid)
+            logger.info(f'[发送信息]{chat_poll.messages[0].content}| [发送到] {wxid}')
 
     async def chatgpt(self, wxid: str, message: str):  # 这个函数请求了openai的api
         request_content = self.compose_gpt_dialogue_request_content(wxid, message)  # 构成对话请求内容，返回一个包含之前对话的列表
