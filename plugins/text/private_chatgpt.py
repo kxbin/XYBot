@@ -11,8 +11,8 @@ from utils.database import BotDatabase
 from utils.plugin_interface import PluginInterface
 from wcferry_helper import XYBotWxMsg
 
-from cozepy import Message, ChatStatus
-from utils.coze import coze_client
+from playsound import playsound
+from utils.coze import coze_client,get_audio
 
 class private_chatgpt(PluginInterface):
     def __init__(self):
@@ -55,8 +55,20 @@ class private_chatgpt(PluginInterface):
         with open('white_people.json', 'r', encoding='utf-8') as f:
             self.white_people = json.load(f)
 
-    def notify(self, bot: client.Wcf, minute, roomid, msg):
-        bot.send_text("用户群{}，已超过{}分钟没有回复，用户问题是：‘{}’".format(self.white_group[roomid], str(minute),msg), roomid)
+    def notify(self, minute, roomid, msg):
+        status1 = get_audio("temp1.wav", "用户群{}".format(self.white_group[roomid]))
+        status2 = get_audio("temp2.wav", "用户问题是：{}".format(msg))
+
+        if status1:
+            playsound('audio/temp1.wav')
+
+        if minute == 5:
+            playsound('audio/5.wav')
+        else:
+            playsound('audio/10.wav')
+
+        if status2:
+            playsound('audio/temp2.wav')
 
     def group_process(self, bot: client.Wcf, roomid, sender, msg):
         self.group_latest_msg[roomid] = msg
@@ -80,7 +92,7 @@ class private_chatgpt(PluginInterface):
         now = time.time()
         end = now + 360
         while now < end:
-            self.notify(bot, 11-int((end-now)/60), roomid, msg)
+            self.notify(11-int((end-now)/60), roomid, msg)
             time.sleep(300)
             now = time.time()
             if roomid in self.group_reply_time and now < (self.group_reply_time[roomid] + 310):
