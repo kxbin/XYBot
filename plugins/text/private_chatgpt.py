@@ -56,17 +56,15 @@ class private_chatgpt(PluginInterface):
             self.white_people = json.load(f)
 
     def notify(self, minute, roomid, msg):
-        status1 = get_audio("temp1.wav", "用户群{}".format(self.white_group[roomid]))
-        status2 = get_audio("temp2.wav", "用户问题是：{}".format(msg))
-
-        if status1:
-            playsound('audio/temp1.wav')
-
+        status1 = get_audio("temp1.wav", "群名：{}".format(self.white_group[roomid][:20]))
+        status2 = get_audio("temp2.wav", "问题是：{}".format(msg[:20]))
+        playsound('audio/0.mp3')
         if minute == 5:
             playsound('audio/5.wav')
         else:
             playsound('audio/10.wav')
-
+        if status1:
+            playsound('audio/temp1.wav')
         if status2:
             playsound('audio/temp2.wav')
 
@@ -77,7 +75,7 @@ class private_chatgpt(PluginInterface):
         
         # 每秒检查持续5分钟，如5分钟内有公司自己人回复或有最新提问，则结束此线程，否则AI回复
         now = time.time()
-        end = now + 300
+        end = now + 10
         while now < end:
             time.sleep(1)
             now = time.time()
