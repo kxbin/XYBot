@@ -2,7 +2,7 @@
 #
 #  This program is licensed under the GNU General Public License v3.0.
 
-import re,yaml,time,json,threading
+import re,yaml,time,json,queue,uuid,threading
 from loguru import logger
 from openai import AsyncOpenAI
 from wcferry import client
@@ -54,19 +54,35 @@ class private_chatgpt(PluginInterface):
             self.white_group = json.load(f)
         with open('white_people.json', 'r', encoding='utf-8') as f:
             self.white_people = json.load(f)
+        self.notify_queue = queue.Queue()
+        threading.Thread(target=self.notify, daemon=True).start()
 
-    def notify(self, minute, roomid, msg):
-        status1 = get_audio("temp1.wav", "群名：{}".format(self.white_group[roomid][:20]))
-        status2 = get_audio("temp2.wav", "问题是：{}".format(msg[:20]))
-        playsound('audio/0.mp3')
-        if minute == 5:
-            playsound('audio/5.wav')
-        else:
-            playsound('audio/10.wav')
-        if status1:
-            playsound('audio/temp1.wav')
-        if status2:
-            playsound('audio/temp2.wav')
+    def notify(self):
+        while True:
+            try:
+                item = self.notify_queue.get()
+                minute = item['minute']
+                roomid = item['roomid']
+                msg = item['msg']
+
+                text1 = "群名：{}".format(self.white_group[roomid][:20])
+                text2 = "问题是：{}".format(msg[:20])
+                file1 = 'audio/temp/{}.wav'.format(str(uuid.uuid4()))
+                file2 = 'audio/temp/{}.wav'.format(str(uuid.uuid4()))
+                status1 = get_audio(file1, text1)
+                status2 = get_audio(file2, text2)
+
+                playsound('audio/0.mp3')
+                if minute == 5:
+                    playsound('audio/5.wav')
+                else:
+                    playsound('audio/10.wav')
+                if status1:
+                    playsound(file1)
+                if status2:
+                    playsound(file2)
+            except queue.Empty:
+                time.sleep(1)
 
     def group_process(self, bot: client.Wcf, roomid, sender, msg):
         self.group_latest_msg[roomid] = msg
@@ -90,8 +106,12 @@ class private_chatgpt(PluginInterface):
         now = time.time()
         end = now + 360
         while now < end:
-            self.notify(11-int((end-now)/60), roomid, msg)
-            time.sleep(300)
+            self.notify_queue.put({
+                'minute': 11-int((end-now)/60),
+                'roomid': roomid,
+                'msg': msg
+            })
+            time.sleep(10)
             now = time.time()
             if roomid in self.group_reply_time and now < (self.group_reply_time[roomid] + 310):
                 return
