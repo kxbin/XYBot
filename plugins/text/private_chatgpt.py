@@ -91,7 +91,7 @@ class private_chatgpt(PluginInterface):
         
         # 每秒检查持续5分钟，如5分钟内有公司自己人回复或有最新提问，则结束此线程，否则AI回复
         now = time.time()
-        end = now + 10
+        end = now + 300
         while now < end:
             time.sleep(1)
             now = time.time()
@@ -111,7 +111,7 @@ class private_chatgpt(PluginInterface):
                 'roomid': roomid,
                 'msg': msg
             })
-            time.sleep(10)
+            time.sleep(300)
             now = time.time()
             if roomid in self.group_reply_time and now < (self.group_reply_time[roomid] + 310):
                 return
