@@ -2,7 +2,7 @@
 #
 #  This program is licensed under the GNU General Public License v3.0.
 
-import re,yaml,time,json,queue,uuid,threading
+import os,re,yaml,time,json,queue,uuid,threading
 from loguru import logger
 from openai import AsyncOpenAI
 from wcferry import client
@@ -79,8 +79,10 @@ class private_chatgpt(PluginInterface):
                     playsound('audio/10.wav')
                 if status1:
                     playsound(file1)
+                    os.remove(file1)
                 if status2:
                     playsound(file2)
+                    os.remove(file2)
             except queue.Empty:
                 time.sleep(1)
 
