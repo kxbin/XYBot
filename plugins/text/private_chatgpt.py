@@ -130,12 +130,12 @@ class private_chatgpt(PluginInterface):
                     json.dump(self.white_group, f, ensure_ascii=False, indent=4)
                 bot.send_text("收到，我会的", recv.roomid)
                 return  # 如果是群里加白指令
-            elif "大家好，我是亿速云" in msg or (match := re.search(r"#\d+", msg)):
+            elif "大家好，我是亿速云" in msg or (match := re.search(r"^#\d+亿速云", msg)):
                 self.white_people[recv.sender] = msg.replace("大家好，我是亿速云", "")
                 self.white_people[recv.sender] = msg.replace(match.group(), "")
                 with open('white_people.json', 'w', encoding='utf-8') as f:
                     json.dump(self.white_people, f, ensure_ascii=False, indent=4)
-                bot.send_text("[鼓掌]", recv.roomid)
+                bot.send_text(self.white_people[recv.sender] + "[鼓掌]", recv.roomid)
                 return  # 如果是人员加白指令
             elif recv.roomid not in self.white_group:
                 return  # 如果消息不来自加白的群，不处理
