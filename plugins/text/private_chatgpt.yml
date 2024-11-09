@@ -10,3 +10,6 @@ clear_dialogue_keyword: [ "清除对话", "重置对话", "新建对话","清除
 gpt_version: 'gpt-4o-mini' # 连续对话消耗的token较多，谨慎设置！
 gpt_max_token: 1000
 gpt_temperature: 0.5
+
+# 用户提问，等待多少秒才播报
+wait_second: 300

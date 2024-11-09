@@ -31,6 +31,8 @@ class private_chatgpt(PluginInterface):
         self.dialogue_count = config["dialogue_count"]  # 保存的对话轮数
         self.clear_dialogue_keyword = config["clear_dialogue_keyword"]
 
+        self.wait_second = config["wait_second"] # 用户提问，等待多少秒才播报
+
         main_config_path = "main_config.yml"
         with open(main_config_path, "r", encoding="utf-8") as f:  # 读取设置
             main_config = yaml.safe_load(f.read())
@@ -61,7 +63,7 @@ class private_chatgpt(PluginInterface):
         while True:
             try:
                 item = self.notify_queue.get()
-                minute = item['minute']
+                second = item['second']
                 roomid = item['roomid']
                 msg = item['msg']
 
@@ -73,10 +75,7 @@ class private_chatgpt(PluginInterface):
                 status2 = get_audio(file2, text2)
 
                 playsound('audio/0.mp3')
-                if minute == 5:
-                    playsound('audio/5.wav')
-                else:
-                    playsound('audio/10.wav')
+                playsound('audio/5.wav')
                 if status1:
                     playsound(file1)
                 if status2:
@@ -91,7 +90,7 @@ class private_chatgpt(PluginInterface):
         
         # 每秒检查持续5分钟，如5分钟内有公司自己人回复或有最新提问，则结束此线程，否则AI回复
         now = time.time()
-        end = now + 300
+        end = now + self.wait_second
         while now < end:
             time.sleep(1)
             now = time.time()
@@ -100,21 +99,26 @@ class private_chatgpt(PluginInterface):
             if self.group_latest_msg[roomid] != msg:
                 return
         
+        self.notify_queue.put({
+            'second': self.wait_second,
+            'roomid': roomid,
+            'msg': msg
+        })
         bot.send_text("请您稍等，我们人员正在跟进中", roomid)
 
         # 每5分钟检查持续6分钟，如还没有自己人回复，则持续广播
-        now = time.time()
-        end = now + 360
-        while now < end:
-            self.notify_queue.put({
-                'minute': 11-int((end-now)/60),
-                'roomid': roomid,
-                'msg': msg
-            })
-            time.sleep(300)
-            now = time.time()
-            if roomid in self.group_reply_time and now < (self.group_reply_time[roomid] + 310):
-                return
+        # now = time.time()
+        # end = now + 360
+        # while now < end:
+        #     self.notify_queue.put({
+        #         'minute': 11-int((end-now)/60),
+        #         'roomid': roomid,
+        #         'msg': msg
+        #     })
+        #     time.sleep(300)
+        #     now = time.time()
+        #     if roomid in self.group_reply_time and now < (self.group_reply_time[roomid] + 310):
+        #         return
 
     async def run(self, bot: client.Wcf, recv: XYBotWxMsg):
         msg = re.sub(r'@.*?\u2005', '', recv.content)

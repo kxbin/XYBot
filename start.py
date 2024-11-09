@@ -1,9 +1,4 @@
-import os
-import socket
-
-import pynng
-import schedule
-import yaml
+import os,shutil,socket,pynng,schedule,yaml
 from loguru import logger
 from wcferry import wcf_pb2, WxMsg
 
@@ -42,6 +37,9 @@ def is_port_in_use(ip: str, port: int):
 
 async def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    if os.path.exists('audio/temp'):
+        shutil.rmtree('audio/temp')
+    os.makedirs('audio/temp')
 
     # ---- log设置 读取设置 ---- #
     logger.add(
