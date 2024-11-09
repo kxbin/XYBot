@@ -8,12 +8,12 @@ from PIL import Image, ImageDraw
 
 # 创建主窗口
 root = tk.Tk()
-root.title("运行Python脚本并实时显示输出")
+root.title("微信群聊监控工具，先登录微信，再点击运行按钮")
 root.geometry("600x400")
 
 # 创建一个滚动文本框，用于显示实时输出
 output_box = scrolledtext.ScrolledText(root, width=70, height=20, wrap=tk.WORD)
-output_box.pack(padx=10, pady=10)
+output_box.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)  # 自适应窗口大小
 
 # 创建按钮的回调函数，用于调用另一个Python脚本
 def run_script():
@@ -87,7 +87,7 @@ def on_minimize():
     create_tray_icon()
 
 # 创建最小化按钮
-minimize_button = tk.Button(root, text="最小化", command=on_minimize)
+minimize_button = tk.Button(root, text="持续运行并隐藏至任务栏", command=on_minimize)
 minimize_button.pack(pady=5)
 
 # 启动GUI主循环
