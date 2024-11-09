@@ -2,6 +2,9 @@ import tkinter as tk
 from tkinter import scrolledtext
 import subprocess
 import sys
+import pystray
+from pystray import MenuItem as item
+from PIL import Image, ImageDraw
 
 # 创建主窗口
 root = tk.Tk()
@@ -48,6 +51,44 @@ def run_script():
 # 创建按钮
 run_button = tk.Button(root, text="运行脚本", command=run_script)
 run_button.pack(pady=10)
+
+# 最小化窗口并隐藏
+def minimize_window():
+    root.withdraw()  # 隐藏窗口
+
+# 创建托盘图标
+def create_tray_icon():
+    # 创建图标
+    image = Image.new('RGB', (64, 64), color=(255, 255, 255))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 64, 64), fill=(0, 0, 0))
+    draw.text((10, 10), "App", fill=(255, 255, 255))
+
+    # 设置菜单
+    menu = (item('恢复', restore_window), item('退出', exit_application))
+    
+    # 创建托盘图标
+    icon = pystray.Icon("test_icon", image, "托盘图标", menu)
+    icon.run()
+
+# 恢复窗口
+def restore_window(icon, item):
+    root.deiconify()  # 恢复窗口显示
+    icon.stop()  # 停止托盘图标
+
+# 退出应用
+def exit_application(icon, item):
+    root.quit()  # 退出应用
+    icon.stop()  # 停止托盘图标
+
+# 创建最小化按钮的回调函数
+def on_minimize():
+    minimize_window()
+    create_tray_icon()
+
+# 创建最小化按钮
+minimize_button = tk.Button(root, text="最小化", command=on_minimize)
+minimize_button.pack(pady=5)
 
 # 启动GUI主循环
 root.mainloop()
