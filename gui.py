@@ -37,10 +37,10 @@ def read_output(pipe):
     info = ""
     for line in iter(pipe.readline, b''):  # 使用 iter 来读取直到 EOF
         if isinstance(line, bytes):  # 如果是字节串
-            info = line.decode()
+            info = line.decode('gbk', errors='ignore')
         else:  # 如果已经是字符串
             info = line
-        output_box.insert(tk.END, info+'\n')
+        output_box.insert(tk.END, info)
         output_box.yview(tk.END)
         root.update()
     pipe.close()
@@ -52,12 +52,11 @@ def run_script():
         run_button.config(state=tk.DISABLED)
         # 启动子进程，运行另一个Python脚本，设置为实时输出
         python_process = subprocess.Popen(
-            ['./python-3.11.8-embed-amd64/python', 'start.py'],  # 替换为你需要运行的脚本路径
+            './python-3.11.8-embed-amd64/python.exe ./start.py',
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,  # 以文本模式打开（支持中文）
             bufsize=1,  # 设置为行缓冲
-            encoding='utf-8',  # 确保输出是utf-8编码的
             creationflags=subprocess.CREATE_NO_WINDOW
         )
         
