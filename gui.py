@@ -33,7 +33,7 @@ def run_script():
     try:
         # 启动子进程，运行另一个Python脚本，设置为实时输出
         process = subprocess.Popen(
-            ['./venv/Scripts/python', 'start.py'],  # 替换为你需要运行的脚本路径
+            ['./python-3.11.8-embed-amd64/python', 'start.py'],  # 替换为你需要运行的脚本路径
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,  # 以文本模式打开（支持中文）

@@ -1,4 +1,6 @@
-import os,shutil,socket,pynng,schedule,yaml
+import os,sys
+sys.path.append(os.getcwd())
+import shutil,socket,pynng,schedule,yaml
 from loguru import logger
 from wcferry import wcf_pb2, WxMsg
 

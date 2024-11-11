@@ -1,6 +1,8 @@
 *.exe
 audio/temp
 utils/coze.py
+
+python-3.11.8-embed-amd64
 wcferry_helper/logs/wcf.txt
 
 ### Python template
