@@ -3,7 +3,7 @@
 
 import tkinter as tk
 from tkinter import scrolledtext
-import subprocess
+import threading,subprocess
 import pystray
 from pystray import MenuItem as item
 from PIL import Image, ImageDraw
@@ -29,11 +29,29 @@ output_box.insert(tk.END,f'''
 output_box.yview(tk.END)
 root.update()
 
+python_process = None
+stdout_thread = None
+stderr_thread = None
+
+def read_output(pipe):
+    info = ""
+    for line in iter(pipe.readline, b''):  # 使用 iter 来读取直到 EOF
+        if isinstance(line, bytes):  # 如果是字节串
+            info = line.decode()
+        else:  # 如果已经是字符串
+            info = line
+        output_box.insert(tk.END, info+'\n')
+        output_box.yview(tk.END)
+        root.update()
+    pipe.close()
+
 # 创建按钮的回调函数，用于调用另一个Python脚本
 def run_script():
+    global python_process,stdout_thread,stderr_thread
     try:
+        run_button.config(state=tk.DISABLED)
         # 启动子进程，运行另一个Python脚本，设置为实时输出
-        process = subprocess.Popen(
+        python_process = subprocess.Popen(
             ['./python-3.11.8-embed-amd64/python', 'start.py'],  # 替换为你需要运行的脚本路径
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -43,21 +61,8 @@ def run_script():
             creationflags=subprocess.CREATE_NO_WINDOW
         )
         
-        # 实时读取输出并更新文本框
-        for line in process.stdout:
-            output_box.insert(tk.END, line)  # 将输出追加到文本框
-            output_box.yview(tk.END)  # 自动滚动到文本框底部
-            root.update()  # 更新GUI界面以实时显示输出
-        
-        # 读取并显示错误信息（如果有的话）
-        err = process.stderr.read()
-        if err:
-            output_box.insert(tk.END, f"错误：{err}\n")
-            output_box.yview(tk.END)
-            root.update()
-
-        # 等待子进程结束
-        process.wait()
+        stdout_thread = threading.Thread(target=read_output, args=(python_process.stdout,)).start()
+        stderr_thread = threading.Thread(target=read_output, args=(python_process.stderr,)).start()
     except Exception as e:
         output_box.insert(tk.END, f"发生错误：{str(e)}\n")
         output_box.yview(tk.END)
@@ -93,6 +98,8 @@ def restore_window(icon, item):
 
 # 退出应用
 def exit_application(icon, item):
+    global python_process,stdout_thread,stderr_thread
+    python_process.terminate()
     root.quit()  # 退出应用
     icon.stop()  # 停止托盘图标
 
