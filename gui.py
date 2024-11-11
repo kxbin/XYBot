@@ -19,7 +19,7 @@ output_box.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)  # 自适应窗口�
 
 output_box.insert(tk.END,f'''
     使用说明：\n
-    1、先登录微信（微信必须是3.9.10.27版本，且关闭更新）\n
+    1、先登录微信（最好是老号避免腾讯风控，微信必须是3.9.10.27版本且关闭更新）\n
     2、然后点击运行启动按钮即可\n\n
     tips：\n
     1、监控群聊指令：请亿速云客服重点关注一下本群xxx（xxx填写群名称）\n
