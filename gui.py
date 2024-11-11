@@ -8,12 +8,23 @@ from PIL import Image, ImageDraw
 
 # 创建主窗口
 root = tk.Tk()
-root.title("微信群聊监控工具，先登录微信，再点击运行按钮")
+root.title("微信群聊监控工具")
 root.geometry("600x400")
 
 # 创建一个滚动文本框，用于显示实时输出
 output_box = scrolledtext.ScrolledText(root, width=70, height=20, wrap=tk.WORD)
 output_box.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)  # 自适应窗口大小
+
+output_box.insert(tk.END,f'''
+    使用说明：\n
+    1、先登录微信（微信必须是3.9.10.27版本，且关闭更新）\n
+    2、然后点击运行启动按钮即可\n\n
+    tips：\n
+    1、监控群聊指令：请亿速云客服重点关注一下本群xxx（xxx填写群名称）\n
+    2、标记内部人员指令：#1 亿速云xxx（xxx填写内部人员名称）\n
+''')
+output_box.yview(tk.END)
+root.update()
 
 # 创建按钮的回调函数，用于调用另一个Python脚本
 def run_script():
@@ -49,7 +60,7 @@ def run_script():
         root.update()
 
 # 创建按钮
-run_button = tk.Button(root, text="运行脚本", command=run_script)
+run_button = tk.Button(root, text="运行启动", command=run_script)
 run_button.pack(pady=10)
 
 # 最小化窗口并隐藏
