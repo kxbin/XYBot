@@ -1,7 +1,9 @@
+# build
+# pyinstaller --onefile --name 微信群聊监控 --windowed --distpath ./ ./gui.py
+
 import tkinter as tk
 from tkinter import scrolledtext
 import subprocess
-import sys
 import pystray
 from pystray import MenuItem as item
 from PIL import Image, ImageDraw
@@ -31,12 +33,13 @@ def run_script():
     try:
         # 启动子进程，运行另一个Python脚本，设置为实时输出
         process = subprocess.Popen(
-            ['python', 'start.py'],  # 替换为你需要运行的脚本路径
+            ['./venv/Scripts/python', 'start.py'],  # 替换为你需要运行的脚本路径
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,  # 以文本模式打开（支持中文）
             bufsize=1,  # 设置为行缓冲
-            encoding='utf-8'  # 确保输出是utf-8编码的
+            encoding='utf-8',  # 确保输出是utf-8编码的
+            creationflags=subprocess.CREATE_NO_WINDOW
         )
         
         # 实时读取输出并更新文本框
