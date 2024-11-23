@@ -20,7 +20,7 @@ output_box.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)  # 自适应窗口�
 output_box.insert(tk.END,f'''
     使用说明：\n
     1、先登录微信（最好是老号避免腾讯风控，微信必须是3.9.10.27版本且关闭更新）\n
-    2、然后点击运行启动按钮\n
+    2、然后点击运行启动按钮，注意看是否有被杀软拦截，如有请关闭杀软\n
     3、运行起来后，把它拉入要监控的企微群即可\n\n
     tips：\n
     1、监控群聊指令：请亿速云客服重点关注一下本群xxx（xxx填写群名称）\n
@@ -60,8 +60,8 @@ def run_script():
             creationflags=subprocess.CREATE_NO_WINDOW
         )
         
-        stdout_thread = threading.Thread(target=read_output, args=(python_process.stdout,)).start()
-        stderr_thread = threading.Thread(target=read_output, args=(python_process.stderr,)).start()
+        stdout_thread = threading.Thread(target=read_output, args=(python_process.stdout, ), daemon=True).start()
+        stderr_thread = threading.Thread(target=read_output, args=(python_process.stderr, ), daemon=True).start()
     except Exception as e:
         output_box.insert(tk.END, f"发生错误：{str(e)}\n")
         output_box.yview(tk.END)
@@ -98,9 +98,14 @@ def restore_window(icon, item):
 # 退出应用
 def exit_application(icon, item):
     global python_process,stdout_thread,stderr_thread
-    python_process.terminate()
+    if python_process is not None:
+        python_process.terminate()
+    if icon is not None:
+        icon.stop()  # 停止托盘图标
     root.quit()  # 退出应用
-    icon.stop()  # 停止托盘图标
+
+def on_close():
+    exit_application(None, None)
 
 # 创建最小化按钮的回调函数
 def on_minimize():
@@ -112,4 +117,5 @@ minimize_button = tk.Button(root, text="持续运行并隐藏至任务栏", comm
 minimize_button.pack(pady=5)
 
 # 启动GUI主循环
+root.protocol("WM_DELETE_WINDOW", on_close)
 root.mainloop()
