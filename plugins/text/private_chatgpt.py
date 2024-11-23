@@ -12,7 +12,7 @@ from utils.plugin_interface import PluginInterface
 from wcferry_helper import XYBotWxMsg
 
 from playsound import playsound
-from utils.coze import coze_client,get_audio
+from utils.coze import ck_exec_thread, coze_client, get_audio
 
 class private_chatgpt(PluginInterface):
     def __init__(self):
@@ -66,8 +66,16 @@ class private_chatgpt(PluginInterface):
                 second = item['second']
                 roomid = item['roomid']
                 msg = item['msg']
+                roomname = self.white_group[roomid]
 
-                text1 = "群名：{}".format(self.white_group[roomid][:20])
+                # ---开始插入ck
+                data = [
+                    (str(roomid), roomname, str(msg)),
+                ]
+                ck_exec_thread('INSERT INTO notify_log (roomid, roomname, msg) VALUES', data)
+                # ---结束插入ck
+
+                text1 = "群名：{}".format(roomname[:20])
                 text2 = "问题是：{}".format(msg[:20])
                 file1 = 'audio/temp/{}.wav'.format(str(uuid.uuid4()))
                 file2 = 'audio/temp/{}.wav'.format(str(uuid.uuid4()))
@@ -141,6 +149,19 @@ class private_chatgpt(PluginInterface):
                 return  # 如果是人员加白指令
             elif recv.roomid not in self.white_group:
                 return  # 如果消息不来自加白的群，不处理
+            
+            # ---开始插入ck
+            is_white_people = 0
+            sendername = ''
+            roomname = self.white_group[recv.roomid]
+            if recv.sender in self.white_people:
+                is_white_people = 1
+                sendername = self.white_people[recv.sender]
+            data = [
+                (is_white_people, str(recv.sender), sendername, str(recv.roomid), roomname, str(recv.content)),
+            ]
+            ck_exec_thread('INSERT INTO wechat_log (is_white_people, sender, sendername, roomid, roomname, content) VALUES', data)
+            # ---结束插入ck
 
             threading.Thread(target=self.group_process, args=(bot, recv.roomid, recv.sender, msg, ), daemon=True).start()
 
