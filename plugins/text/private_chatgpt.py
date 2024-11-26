@@ -103,6 +103,8 @@ class private_chatgpt(PluginInterface):
         while now < end:
             time.sleep(1)
             now = time.time()
+            if msg in ["好的", "好", "谢谢", "ok", "OK"]: # 结束语义不处理
+                return
             if roomid in self.group_reply_time and now < (self.group_reply_time[roomid] + 300):
                 return
             if self.group_latest_msg[roomid] != msg:
