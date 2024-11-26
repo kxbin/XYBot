@@ -66,13 +66,14 @@ class private_chatgpt(PluginInterface):
                 second = item['second']
                 roomid = item['roomid']
                 msg = item['msg']
-                roomname = self.white_group[roomid]
+                roomname = "未命名群聊" if not self.white_group[roomid].strip() else self.white_group[roomid].strip()
 
                 # ---开始插入ck
                 data = [
                     (str(roomid), roomname, str(msg)),
                 ]
                 ck_exec_thread('INSERT INTO notify_log (roomid, roomname, msg) VALUES', data)
+                print("用户群已经5分钟没有回复，群名：{}，问题是：{}".format(roomname, msg))
                 # ---结束插入ck
 
                 text1 = "群名：{}".format(roomname[:20])
@@ -93,7 +94,7 @@ class private_chatgpt(PluginInterface):
 
     def group_process(self, bot: client.Wcf, roomid, sender, msg):
         self.group_latest_msg[roomid] = msg
-        if sender in self.white_people:
+        if (sender in self.white_people) or ("@openim" in sender):
             self.group_reply_time[roomid] = time.time()
         
         # 每秒检查持续5分钟，如5分钟内有公司自己人回复或有最新提问，则结束此线程，否则AI回复
@@ -154,6 +155,8 @@ class private_chatgpt(PluginInterface):
             is_white_people = 0
             sendername = ''
             roomname = self.white_group[recv.roomid]
+            if "@openim" in recv.sender:
+                is_white_people = 1
             if recv.sender in self.white_people:
                 is_white_people = 1
                 sendername = self.white_people[recv.sender]

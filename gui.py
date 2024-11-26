@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw
 # 创建主窗口
 root = tk.Tk()
 root.title("微信群聊监控工具")
-root.geometry("600x400")
+root.geometry("800x600")
 
 # 创建一个滚动文本框，用于显示实时输出
 output_box = scrolledtext.ScrolledText(root, width=70, height=20, wrap=tk.WORD)
@@ -23,8 +23,9 @@ output_box.insert(tk.END,f'''
     2、然后点击运行启动按钮，注意看是否有被杀软拦截，如有请关闭杀软\n
     3、运行起来后，把它拉入要监控的企微群即可\n\n
     tips：\n
-    1、监控群聊指令：请亿速云客服重点关注一下本群xxx（xxx填写群名称）\n
-    2、标记内部人员指令：#1 亿速云xxx（xxx填写内部人员名称）\n
+    1、监控群聊指令：请亿速云客服重点关注一下本群xxx（xxx填写群名称，任何人发送均可，每个群都要发）\n
+    2、标记内部人员指令：#1 亿速云xxx（xxx填写内部人员名称，需内部人员自己发送，一个群发了其它群共享）\n
+    3、默认情况下所有企业微信联系人都认为是内部人员，可以不用标记内部人员，但是监控群聊指令必须要发的\n
 ''')
 output_box.yview(tk.END)
 root.update()
@@ -40,6 +41,9 @@ def read_output(pipe):
             info = line.decode('gbk', errors='ignore')
         else:  # 如果已经是字符串
             info = line
+        line_count = int(output_box.index('end-1c').split('.')[0])
+        if line_count > 40:
+            output_box.delete(1.0, tk.END)
         output_box.insert(tk.END, info)
         output_box.yview(tk.END)
         root.update()
@@ -68,7 +72,7 @@ def run_script():
         root.update()
 
 # 创建按钮
-run_button = tk.Button(root, text="运行启动", command=run_script)
+run_button = tk.Button(root, text="先登录好微信然后点击此处运行启动", command=run_script)
 run_button.pack(pady=10)
 
 # 最小化窗口并隐藏
@@ -113,8 +117,8 @@ def on_minimize():
     create_tray_icon()
 
 # 创建最小化按钮
-minimize_button = tk.Button(root, text="持续运行并隐藏至任务栏", command=on_minimize)
-minimize_button.pack(pady=5)
+# minimize_button = tk.Button(root, text="持续运行并隐藏至任务栏", command=on_minimize)
+# minimize_button.pack(pady=5)
 
 # 启动GUI主循环
 root.protocol("WM_DELETE_WINDOW", on_close)
